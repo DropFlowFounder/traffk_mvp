@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Traffk — биржа трафика</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- FontAwesome (иконки) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <style>
+    :root {
+      --tg-bg: var(--tg-theme-bg-color, #0f172a);
+      --tg-text: var(--tg-theme-text-color, #e5e7eb);
+      --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #111827);
+      --tg-hint: var(--tg-theme-hint-color, #9ca3af);
+      --tg-link: var(--tg-theme-link-color, #60a5fa);
+      --tg-button: var(--tg-theme-button-color, #ec4899);
+      --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+
+      --accent: #ec4899;
+      --accent-soft: rgba(236, 72, 153, 0.15);
+      --accent-alt: #8b5cf6;
+      --border-color: rgba(148, 163, 184, 0.4);
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Roboto", sans-serif;
+      background: radial-gradient(circle at top left, #1e293b, #020617);
+      color: var(--tg-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 12px 12px 72px; /* место под таб-бар */
+      gap: 12px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: linear-gradient(
+        135deg,
+        rgba(15, 23, 42, 0.9),
+        rgba(15, 23, 42, 0.6)
+      );
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(18px);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #f97316, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #f9fafb;
+      font-size: 16px;
+      box-shadow: 0 0 0 1px rgba(248, 250, 252, 0.08),
+        0 10px 25px rgba(15, 23, 42, 0.8);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--tg-hint);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-admin {
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      background: rgba(52, 211, 153, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+    }
+
+    .header-balance {
+      text-align: right;
+    }
+
+    .balance-label {
+      font-size: 11px;
+      color: var(--tg-hint);
+      margin-bottom: 2px;
+    }
+
+    .balance-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f9fafb;
+    }
+
+    .balance-chips {
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .chip {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--tg-hint);
+    }
+
+    .chip.accent {
+      border-color: rgba(236, 72, 153, 0.6);
+      background: rgba(236, 72, 153, 0.12);
+      color: #f9a8d4;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--tg-hint);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.16s ease-out;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+      color: #f9fafb;
+      border-color: rgba(248, 250, 252, 0.12);
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.6);
+    }
+
+    .tab i {
+      font-size: 13px;
+    }
+
+    /* Main cards */
+    .card {
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+      background: linear-gradient(
+        145deg,
+        rgba(15, 23, 42, 0.98),
+        rgba(15, 23, 42, 0.93)
+      );
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title span.icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(236, 72, 153, 0.14);
+      color: #f9a8d4;
+      font-size: 12px;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--tg-hint);
+    }
+
+    .section {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .section.active {
+      display: flex;
+    }
+
+    /* Task list */
+    .empty-state {
+      text-align: center;
+      padding: 14px 10px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px dashed rgba(148, 163, 184, 0.6);
+      color: var(--tg-hint);
+      font-size: 12px;
+    }
+
+    .empty-state strong {
+      color: #e5e7eb;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .task-card {
+      border-radius: 14px;
+      padding: 10px 10px 8px;
+      background: radial-gradient(circle at top left, #1e293b, #020617);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.95);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .task-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .task-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .task-id {
+      font-size: 11px;
+      color: var(--tg-hint);
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .pill {
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #e5e7eb;
+    }
+
+    .pill.reward {
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(22, 163, 74, 0.18);
+      color: #bbf7d0;
+    }
+
+    .pill.status-new {
+      border-color: rgba(59, 130, 246, 0.6);
+      background: rgba(37, 99, 235, 0.16);
+      color: #bfdbfe;
+    }
+
+    .pill.status-in_progress {
+      border-color: rgba(234, 179, 8, 0.8);
+      background: rgba(234, 179, 8, 0.14);
+      color: #facc15;
+    }
+
+    .pill.status-verification {
+      border-color: rgba(236, 72, 153, 0.7);
+      background: rgba(236, 72, 153, 0.1);
+      color: #f9a8d4;
+    }
+
+    .pill.status-completed {
+      border-color: rgba(34, 197, 94, 0.8);
+      background: rgba(34, 197, 94, 0.12);
+      color: #bbf7d0;
+    }
+
+    .pill.status-rejected {
+      border-color: rgba(248, 113, 113, 0.8);
+      background: rgba(248, 113, 113, 0.16);
+      color: #fecaca;
+    }
+
+    .task-desc {
+      font-size: 12px;
+      color: #cbd5f5;
+      max-height: 42px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .task-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+      gap: 6px;
+    }
+
+    .task-link {
+      font-size: 11px;
+      color: var(--tg-link);
+      text-decoration: none;
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--tg-text);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      transition: all 0.16s ease-out;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+      color: #f9fafb;
+      border-color: rgba(248, 250, 252, 0.12);
+      box-shadow: 0 8px 24px rgba(236, 72, 153, 0.6);
+    }
+
+    .btn-outline {
+      background: transparent;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    .btn[disabled] {
+      opacity: 0.55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    /* Forms */
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--tg-hint);
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--tg-text);
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 60px;
+      max-height: 140px;
+    }
+
+    .field input:focus,
+    .field textarea:focus {
+      border-color: rgba(236, 72, 153, 0.85);
+      box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.4);
+    }
+
+    .field-hint {
+      font-size: 11px;
+      color: var(--tg-hint);
+    }
+
+    /* Profile */
+    .profile-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .profile-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .profile-label {
+      color: var(--tg-hint);
+    }
+
+    .profile-value {
+      font-weight: 500;
+    }
+
+    /* Admin */
+    .log {
+      margin-top: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.95);
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--tg-hint);
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      inset-inline: 0;
+      bottom: 62px;
+      margin-inline: auto;
+      max-width: 360px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.9);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.2s ease-out;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .toast.success .toast-icon {
+      background: rgba(34, 197, 94, 0.2);
+      color: #bbf7d0;
+    }
+
+    .toast.error .toast-icon {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fecaca;
+    }
+
+    .toast.warning .toast-icon {
+      background: rgba(250, 204, 21, 0.2);
+      color: #fef3c7;
+    }
+
+    .toast-text {
+      flex: 1;
+    }
+
+    /* Bottom tab bar (имитация native) */
+    .tabbar {
+      position: fixed;
+      inset-inline: 0;
+      bottom: 0;
+      padding: 6px 14px 10px;
+      background: linear-gradient(
+        180deg,
+        rgba(15, 23, 42, 0.1),
+        rgba(15, 23, 42, 0.92)
+      );
+      border-top: 1px solid rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(18px);
+      z-index: 40;
+    }
+
+    .tabbar-inner {
+      max-width: 480px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .tabbar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 6px 4px;
+      border-radius: 999px;
+      color: var(--tg-hint);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.16s ease-out;
+    }
+
+    .tabbar-item-icon {
+      font-size: 16px;
+    }
+
+    .tabbar-item.active {
+      color: #f9fafb;
+      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.9);
+    }
+
+    .tabbar-item-label {
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <div class="avatar" id="avatarInitials">T</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">Гость</div>
+          <div class="user-role">
+            <span id="userRoleLabel">Гость</span>
+            <span class="badge-admin" id="adminBadge" style="display:none;">
+              <i class="fa-solid fa-shield-halved"></i> Admin
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="header-balance">
+        <div class="balance-label">Баланс</div>
+        <div class="balance-value" id="balanceValue">0 ₽</div>
+        <div class="balance-chips">
+          <div class="chip accent">Escrow</div>
+          <div class="chip">MVP</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="feed">
+        <i class="fa-solid fa-layer-group"></i>
+        Лента
+      </button>
+      <button class="tab" data-tab="create">
+        <i class="fa-solid fa-plus"></i>
+        Создать
+      </button>
+      <button class="tab" data-tab="profile">
+        <i class="fa-solid fa-user"></i>
+        Профиль
+      </button>
+      <button class="tab" data-tab="admin" id="adminTab" style="display:none;">
+        <i class="fa-solid fa-shield-halved"></i>
+        Админ
+      </button>
+    </div>
+
+    <!-- Лента -->
+    <section class="card section active" id="section-feed">
+      <div class="card-header">
+        <div>
+          <div class="card-title">
+            <span class="icon">
+              <i class="fa-solid fa-bolt"></i>
+            </span>
+            Лента заданий
+          </div>
+          <div class="card-subtitle">
+            Новые задания от рекламодателей
+          </div>
+        </div>
+        <select id="feedFilter" class="pill" style="font-size:11px;">
+          <option value="all">Все</option>
+          <option value="active">Активные</option>
+        </select>
+      </div>
+      <div id="feedEmpty" class="empty-state" style="display:none;">
+        <div style="margin-bottom:4px;">
+          <strong>Пока нет заданий</strong>
+        </div>
+        Создайте первое задание или обновите позже.
+      </div>
+      <div class="task-list" id="feedList"></div>
+    </section>
+
+    <!-- Создание задания -->
+    <section class="card section" id="section-create">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">
+            <i class="fa-solid fa-pen"></i>
+          </span>
+          Новое задание
+        </div>
+        <div class="card-subtitle">
+          Резервируем бюджет на балансе
+        </div>
+      </div>
+      <form id="createTaskForm" class="form">
+        <div class="field">
+          <label for="taskTitle">Название</label>
+          <input
+            id="taskTitle"
+            name="title"
+            type="text"
+            placeholder="Например: Пост в Telegram-канале"
+            required
+          />
+        </div>
+        <div class="field">
+          <label for="taskDescription">Описание</label>
+          <textarea
+            id="taskDescription"
+            name="description"
+            placeholder="Требования к трафику, регионы, формат креативов..."
+            required
+          ></textarea>
+        </div>
+        <div class="field">
+          <label for="taskLink">Ссылка</label>
+          <input
+            id="taskLink"
+            name="link"
+            type="url"
+            placeholder="https://..."
+          />
+          <div class="field-hint">
+            Можно оставить пустой, если ссылка будет позже.
+          </div>
+        </div>
+        <div class="field">
+          <label for="taskReward">Бюджет (₽)</label>
+          <input
+            id="taskReward"
+            name="reward"
+            type="number"
+            inputmode="decimal"
+            min="1"
+            step="1"
+            placeholder="500"
+            required
+          />
+          <div class="field-hint">
+            Сумма будет заморожена на вашем балансе до завершения сделки.
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-paper-plane"></i>
+          Опубликовать
+        </button>
+      </form>
+    </section>
+
+    <!-- Профиль -->
+    <section class="card section" id="section-profile">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">
+            <i class="fa-solid fa-user"></i>
+          </span>
+          Мой профиль
+        </div>
+        <div class="card-subtitle">
+          Баланс, мои задания и сделки
+        </div>
+      </div>
+      <div class="profile-block">
+        <div class="profile-row">
+          <div class="profile-label">Telegram</div>
+          <div class="profile-value" id="profileUsername">@...</div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-label">ID</div>
+          <div class="profile-value" id="profileUserId">—</div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-label">Баланс</div>
+          <div class="profile-value" id="profileBalance">0 ₽</div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-label">Роль</div>
+          <div class="profile-value" id="profileRole">Пользователь</div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="card-subtitle" style="margin-bottom:6px;">
+          Мои задания (как заказчик)
+        </div>
+        <div id="profileCustomerEmpty" class="empty-state" style="display:none;">
+          У вас пока нет созданных заданий.
+        </div>
+        <div class="task-list" id="profileCustomerList"></div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <div class="card-subtitle" style="margin-bottom:6px;">
+          Мои задания (как исполнитель)
+        </div>
+        <div id="profilePerformerEmpty" class="empty-state" style="display:none;">
+          Вы ещё не взяли задания в работу.
+        </div>
+        <div class="task-list" id="profilePerformerList"></div>
+      </div>
+    </section>
+
+    <!-- Админ-панель -->
+    <section class="card section" id="section-admin">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">
+            <i class="fa-solid fa-shield-halved"></i>
+          </span>
+          Админ-панель
+        </div>
+        <div class="card-subtitle">
+          Ручной эскроу и модерация
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:4px;">
+        <label>Сделки «На проверке»</label>
+      </div>
+
+      <div id="adminEmpty" class="empty-state" style="display:none;">
+        Нет задач со статусом <strong>на проверке</strong>.
+      </div>
+      <div class="task-list" id="adminList"></div>
+
+      <div style="margin-top:8px;">
+        <div class="card-subtitle" style="margin-bottom:4px;">
+          Лог операций (только в браузере)
+        </div>
+        <div class="log" id="adminLog"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Имитация bottom bar (если не используем MainButton) -->
+  <div class="tabbar">
+    <div class="tabbar-inner">
+      <div class="tabbar-item active" data-tab="feed">
+        <div class="tabbar-item-icon">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="tabbar-item-label">Лента</div>
+      </div>
+      <div class="tabbar-item" data-tab="create">
+        <div class="tabbar-item-icon">
+          <i class="fa-solid fa-plus"></i>
+        </div>
+        <div class="tabbar-item-label">Создать</div>
+      </div>
+      <div class="tabbar-item" data-tab="profile">
+        <div class="tabbar-item-icon">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="tabbar-item-label">Профиль</div>
+      </div>
+      <div class="tabbar-item" data-tab="admin" id="adminTabBottom" style="display:none;">
+        <div class="tabbar-item-icon">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div class="tabbar-item-label">Админ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <div class="toast-icon"><i class="fa-solid fa-circle-info"></i></div>
+    <div class="toast-text" id="toastText">Сообщение</div>
+  </div>
+
+  <script>
+    // === Константы и "бэкенд" в localStorage ===
+    const ADMIN_ID = 12345; // здесь можно поменять на свой реальный Telegram ID
+    const STORAGE_KEY = "traffk_mini_app_data_v1";
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return { users: [], tasks: [], logs: [] };
+        }
+        return JSON.parse(raw);
+      } catch (e) {
+        console.error("Failed to parse state:", e);
+        return { users: [], tasks: [], logs: [] };
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function generateTaskId(state) {
+      const ids = state.tasks.map((t) => t.id || 0);
+      const max = ids.length ? Math.max(...ids) : 0;
+      return max + 1;
+    }
+
+    function formatMoney(amount) {
+      const n = Number(amount || 0);
+      return new Intl.NumberFormat("ru-RU", {
+        style: "currency",
+        currency: "RUB",
+        maximumFractionDigits: 0,
+      }).format(n);
+    }
+
+    function statusLabel(status) {
+      switch (status) {
+        case "new":
+          return "Новое";
+        case "in_progress":
+          return "В работе";
+        case "verification":
+          return "На проверке";
+        case "completed":
+          return "Завершено";
+        case "rejected":
+          return "Отклонено";
+        default:
+          return status;
+      }
+    }
+
+    // === Telegram WebApp init ===
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    let currentUser = {
+      id: Date.now(), // placeholder, заменим если есть user в initData
+      username: "guest",
+      first_name: "Гость",
+      is_admin: false,
+    };
+
+    function initTelegramUser() {
+      if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return;
+
+      const u = tg.initDataUnsafe.user;
+      currentUser = {
+        id: u.id,
+        username: u.username || "user",
+        first_name: u.first_name || "User",
+        is_admin: u.id === ADMIN_ID,
+      };
+    }
+
+    initTelegramUser();
+
+    // === UI и бизнес-логика ===
+    const avatarInitialsEl = document.getElementById("avatarInitials");
+    const userNameEl = document.getElementById("userName");
+    const userRoleLabelEl = document.getElementById("userRoleLabel");
+    const adminBadgeEl = document.getElementById("adminBadge");
+    const balanceValueEl = document.getElementById("balanceValue");
+    const adminTabEl = document.getElementById("adminTab");
+    const adminTabBottomEl = document.getElementById("adminTabBottom");
+
+    const sectionFeed = document.getElementById("section-feed");
+    const sectionCreate = document.getElementById("section-create");
+    const sectionProfile = document.getElementById("section-profile");
+    const sectionAdmin = document.getElementById("section-admin");
+
+    const tabsTop = document.querySelectorAll(".tabs .tab");
+    const tabsBottom = document.querySelectorAll(".tabbar-item");
+
+    const feedListEl = document.getElementById("feedList");
+    const feedEmptyEl = document.getElementById("feedEmpty");
+    const feedFilterEl = document.getElementById("feedFilter");
+
+    const profileUsernameEl = document.getElementById("profileUsername");
+    const profileUserIdEl = document.getElementById("profileUserId");
+    const profileBalanceEl = document.getElementById("profileBalance");
+    const profileRoleEl = document.getElementById("profileRole");
+    const profileCustomerListEl = document.getElementById("profileCustomerList");
+    const profilePerformerListEl = document.getElementById("profilePerformerList");
+    const profileCustomerEmptyEl = document.getElementById("profileCustomerEmpty");
+    const profilePerformerEmptyEl = document.getElementById("profilePerformerEmpty");
+
+    const adminListEl = document.getElementById("adminList");
+    const adminEmptyEl = document.getElementById("adminEmpty");
+    const adminLogEl = document.getElementById("adminLog");
+
+    const createTaskForm = document.getElementById("createTaskForm");
+
+    const toastEl = document.getElementById("toast");
+    const toastTextEl = document.getElementById("toastText");
+
+    function showToast(message, type = "info") {
+      toastEl.className = "toast " + type;
+      toastTextEl.textContent = message;
+      toastEl.classList.add("show");
+      setTimeout(() => {
+        toastEl.classList.remove("show");
+      }, 2300);
+    }
+
+    function ensureUserInState() {
+      const state = loadState();
+      let user = state.users.find((u) => u.id === currentUser.id);
+      if (!user) {
+        user = {
+          id: currentUser.id,
+          username: currentUser.username,
+          balance: 0,
+          role: "user",
+        };
+        state.users.push(user);
+        saveState(state);
+      }
+      return user;
+    }
+
+    function updateHeaderAndProfile() {
+      const state = loadState();
+      const user = ensureUserInState();
+
+      const initials =
+        currentUser.first_name?.[0] ||
+        currentUser.username?.[0] ||
+        "T";
+      avatarInitialsEl.textContent = initials.toUpperCase();
+      userNameEl.textContent =
+        currentUser.first_name ||
+        (currentUser.username ? "@" + currentUser.username : "Пользователь");
+
+      const isAdmin = currentUser.id === ADMIN_ID;
+      currentUser.is_admin = isAdmin;
+      adminBadgeEl.style.display = isAdmin ? "inline-flex" : "none";
+      adminTabEl.style.display = isAdmin ? "flex" : "none";
+      adminTabBottomEl.style.display = isAdmin ? "flex" : "none";
+
+      userRoleLabelEl.textContent = isAdmin ? "Администратор" : "Пользователь";
+
+      balanceValueEl.textContent = formatMoney(user.balance);
+      profileUsernameEl.textContent = currentUser.username
+        ? "@" + currentUser.username
+        : "—";
+      profileUserIdEl.textContent = String(currentUser.id || "—");
+      profileBalanceEl.textContent = formatMoney(user.balance);
+      profileRoleEl.textContent = isAdmin ? "Администратор" : "Пользователь";
+    }
+
+    function renderFeed() {
+      const state = loadState();
+      const filter = feedFilterEl.value;
+      let tasks = [...state.tasks];
+
+      if (filter === "active") {
+        tasks = tasks.filter(
+          (t) =>
+            t.status === "new" ||
+            t.status === "in_progress" ||
+            t.status === "verification"
+        );
+      }
+
+      feedListEl.innerHTML = "";
+
+      if (!tasks.length) {
+        feedEmptyEl.style.display = "block";
+        return;
+      }
+
+      feedEmptyEl.style.display = "none";
+
+      tasks
+        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
+        .forEach((task) => {
+          const creator = state.users.find((u) => u.id === task.creator_id);
+          const isCreator = task.creator_id === currentUser.id;
+          const isPerformer = task.performer_id === currentUser.id;
+
+          const card = document.createElement("div");
+          card.className = "task-card";
+
+          const top = document.createElement("div");
+          top.className = "task-top";
+
+          const titleWrap = document.createElement("div");
+          const titleEl = document.createElement("div");
+          titleEl.className = "task-title";
+          titleEl.textContent = task.title;
+
+          const idEl = document.createElement("div");
+          idEl.className = "task-id";
+          idEl.textContent = `#${task.id} • ${
+            creator?.username ? "@" + creator.username : "заказчик"
+          }`;
+
+          titleWrap.appendChild(titleEl);
+          titleWrap.appendChild(idEl);
+
+          const meta = document.createElement("div");
+          meta.className = "task-meta";
+
+          const rewardPill = document.createElement("div");
+          rewardPill.className = "pill reward";
+          rewardPill.innerHTML = `<i class="fa-solid fa-ruble-sign"></i> ${formatMoney(
+            task.reward
+          )}`;
+          meta.appendChild(rewardPill);
+
+          const statusPill = document.createElement("div");
+          statusPill.className = "pill status-" + task.status;
+          statusPill.innerHTML = `<i class="fa-solid fa-circle-dot"></i> ${statusLabel(
+            task.status
+          )}`;
+          meta.appendChild(statusPill);
+
+          if (isCreator) {
+            const rolePill = document.createElement("div");
+            rolePill.className = "pill";
+            rolePill.innerHTML = `<i class="fa-solid fa-bullhorn"></i> Мой заказ`;
+            meta.appendChild(rolePill);
+          } else if (isPerformer) {
+            const rolePill = document.createElement("div");
+            rolePill.className = "pill";
+            rolePill.innerHTML = `<i class="fa-solid fa-rocket"></i> Я исполнитель`;
+            meta.appendChild(rolePill);
+          }
+
+          top.appendChild(titleWrap);
+          top.appendChild(meta);
+
+          const desc = document.createElement("div");
+          desc.className = "task-desc";
+          desc.textContent = task.description || "";
+
+          const footer = document.createElement("div");
+          footer.className = "task-footer";
+
+          const linkEl = document.createElement("a");
+          linkEl.className = "task-link";
+          if (task.link) {
+            linkEl.href = task.link;
+            linkEl.target = "_blank";
+            linkEl.textContent = task.link;
+          } else {
+            linkEl.textContent = "Ссылка не указана";
+            linkEl.style.color = "var(--tg-hint)";
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "task-actions";
+
+          // Кнопки в ленте
+          if (!isCreator && !isPerformer && task.status === "new") {
+            const btnTake = document.createElement("button");
+            btnTake.className = "btn btn-sm btn-primary";
+            btnTake.innerHTML =
+              '<i class="fa-solid fa-hand-pointer"></i> Взять в работу';
+            btnTake.onclick = () => takeTask(task.id);
+            actions.appendChild(btnTake);
+          } else if (isPerformer && task.status === "in_progress") {
+            const btnProof = document.createElement("button");
+            btnProof.className = "btn btn-sm btn-primary";
+            btnProof.innerHTML =
+              '<i class="fa-solid fa-file-circle-check"></i> Сдать отчёт';
+            btnProof.onclick = () => submitProofPrompt(task.id);
+            actions.appendChild(btnProof);
+          }
+
+          footer.appendChild(linkEl);
+          footer.appendChild(actions);
+
+          card.appendChild(top);
+          card.appendChild(desc);
+          card.appendChild(footer);
+
+          feedListEl.appendChild(card);
+        });
+    }
+
+    function renderProfile() {
+      const state = loadState();
+      const user = ensureUserInState();
+
+      // Заказчик
+      const myTasks = state.tasks.filter((t) => t.creator_id === user.id);
+      profileCustomerListEl.innerHTML = "";
+      if (!myTasks.length) {
+        profileCustomerEmptyEl.style.display = "block";
+      } else {
+        profileCustomerEmptyEl.style.display = "none";
+        myTasks.forEach((task) => {
+          const card = document.createElement("div");
+          card.className = "task-card";
+
+          card.innerHTML = `
+            <div class="task-top">
+              <div>
+                <div class="task-title">${task.title}</div>
+                <div class="task-id">#${task.id}</div>
+              </div>
+              <div class="task-meta">
+                <div class="pill reward">
+                  <i class="fa-solid fa-ruble-sign"></i> ${formatMoney(
+                    task.reward
+                  )}
+                </div>
+                <div class="pill status-${task.status}">
+                  <i class="fa-solid fa-circle-dot"></i> ${statusLabel(
+                    task.status
+                  )}
+                </div>
+              </div>
+            </div>
+            <div class="task-desc">${task.description || ""}</div>
+          `;
+          profileCustomerListEl.appendChild(card);
+        });
+      }
+
+      // Исполнитель
+      const performTasks = state.tasks.filter(
+        (t) => t.performer_id === user.id
+      );
+      profilePerformerListEl.innerHTML = "";
+      if (!performTasks.length) {
+        profilePerformerEmptyEl.style.display = "block";
+      } else {
+        profilePerformerEmptyEl.style.display = "none";
+        performTasks.forEach((task) => {
+          const card = document.createElement("div");
+          card.className = "task-card";
+          card.innerHTML = `
+            <div class="task-top">
+              <div>
+                <div class="task-title">${task.title}</div>
+                <div class="task-id">#${task.id}</div>
+              </div>
+              <div class="task-meta">
+                <div class="pill reward">
+                  <i class="fa-solid fa-ruble-sign"></i> ${formatMoney(
+                    task.reward
+                  )}
+                </div>
+                <div class="pill status-${task.status}">
+                  <i class="fa-solid fa-circle-dot"></i> ${statusLabel(
+                    task.status
+                  )}
+                </div>
+              </div>
+            </div>
+            <div class="task-desc">${task.description || ""}</div>
+          `;
+          profilePerformerListEl.appendChild(card);
+        });
+      }
+    }
+
+    function renderAdmin() {
+      const state = loadState();
+      const pending = state.tasks.filter(
+        (t) => t.status === "verification"
+      );
+      adminListEl.innerHTML = "";
+
+      if (!pending.length) {
+        adminEmptyEl.style.display = "block";
+      } else {
+        adminEmptyEl.style.display = "none";
+        pending.forEach((task) => {
+          const creator = state.users.find((u) => u.id === task.creator_id);
+          const performer = state.users.find(
+            (u) => u.id === task.performer_id
+          );
+
+          const card = document.createElement("div");
+          card.className = "task-card";
+
+          const metaText = [
+            creator ? `заказчик: @${creator.username}` : "заказчик: —",
+            performer ? `исп: @${performer.username}` : "исп: —",
+          ].join(" • ");
+
+          card.innerHTML = `
+            <div class="task-top">
+              <div>
+                <div class="task-title">${task.title}</div>
+                <div class="task-id">#${task.id}</div>
+              </div>
+              <div class="task-meta">
+                <div class="pill reward">
+                  <i class="fa-solid fa-ruble-sign"></i> ${formatMoney(
+                    task.reward
+                  )}
+                </div>
+                <div class="pill status-${task.status}">
+                  <i class="fa-solid fa-circle-dot"></i> ${statusLabel(
+                    task.status
+                  )}
+                </div>
+              </div>
+            </div>
+            <div class="task-desc">
+              ${task.description || ""}<br/>
+              <span style="color:var(--tg-hint); font-size:11px;">${metaText}</span><br/>
+              ${
+                task.proof
+                  ? `<span style="color:var(--tg-link); font-size:11px;">Proof: ${task.proof}</span>`
+                  : ""
+              }
+            </div>
+          `;
+
+          const footer = document.createElement("div");
+          footer.className = "task-footer";
+          footer.style.marginTop = "6px";
+
+          const left = document.createElement("div");
+          left.style.fontSize = "11px";
+          left.style.color = "var(--tg-hint)";
+          left.textContent = "Ручной эскроу: подтвердить или отклонить";
+
+          const actions = document.createElement("div");
+          actions.className = "task-actions";
+
+          const btnApprove = document.createElement("button");
+          btnApprove.className = "btn btn-sm btn-primary";
+          btnApprove.innerHTML =
+            '<i class="fa-solid fa-circle-check"></i> Одобрить';
+          btnApprove.onclick = () => adminApprove(task.id);
+
+          const btnReject = document.createElement("button");
+          btnReject.className = "btn btn-sm btn-outline";
+          btnReject.style.color = "#fecaca";
+          btnReject.style.borderColor = "rgba(248,113,113,0.7)";
+          btnReject.innerHTML =
+            '<i class="fa-solid fa-circle-xmark"></i> Отклонить';
+          btnReject.onclick = () => adminReject(task.id);
+
+          actions.appendChild(btnApprove);
+          actions.appendChild(btnReject);
+
+          footer.appendChild(left);
+          footer.appendChild(actions);
+
+          card.appendChild(footer);
+          adminListEl.appendChild(card);
+        });
+      }
+
+      // Лог
+      adminLogEl.innerHTML = "";
+      (state.logs || []).forEach((entry) => {
+        const div = document.createElement("div");
+        div.className = "log-entry";
+        div.textContent = entry;
+        adminLogEl.appendChild(div);
+      });
+    }
+
+    // === Действия ===
+    function takeTask(taskId) {
+      const state = loadState();
+      const user = ensureUserInState();
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (task.status !== "new") {
+        showToast("Задание уже недоступно", "warning");
+        return;
+      }
+      if (task.creator_id === user.id) {
+        showToast("Нельзя взять своё задание", "error");
+        return;
+      }
+
+      task.performer_id = user.id;
+      task.status = "in_progress";
+      saveState(state);
+      showToast("Задание взято в работу", "success");
+      renderFeed();
+      renderProfile();
+    }
+
+    function submitProofPrompt(taskId) {
+      const proof = prompt(
+        "Вставьте ссылку на пост/скриншоты или описание выполненной работы:"
+      );
+      if (!proof) return;
+
+      const state = loadState();
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (task.status !== "in_progress") {
+        showToast("Нельзя отправить отчёт для этого статуса", "warning");
+        return;
+      }
+
+      task.proof = proof;
+      task.status = "verification";
+      saveState(state);
+      showToast("Отчёт отправлен на проверку администратору", "success");
+      renderFeed();
+      renderProfile();
+      renderAdmin();
+    }
+
+    function adminApprove(taskId) {
+      if (!currentUser.is_admin) {
+        showToast("Доступ только для администратора", "error");
+        return;
+      }
+      const state = loadState();
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (task.status !== "verification") return;
+
+      const creator = state.users.find((u) => u.id === task.creator_id);
+      const performer = state.users.find((u) => u.id === task.performer_id);
+
+      // Ручной эскроу: деньги уже списаны с заказчика при создании,
+      // здесь мы начисляем исполнителю.
+      if (performer) {
+        performer.balance = Number(performer.balance || 0) + Number(task.reward || 0);
+      }
+
+      task.status = "completed";
+      const logEntry = `[${new Date().toLocaleString("ru-RU")}] ✅ Админ одобрил задачу #${
+        task.id
+      } на сумму ${formatMoney(task.reward)} (исполнитель: @${
+        performer?.username || "?"
+      })`;
+      state.logs = state.logs || [];
+      state.logs.unshift(logEntry);
+
+      saveState(state);
+      showToast("Сделка подтверждена", "success");
+      updateHeaderAndProfile();
+      renderFeed();
+      renderProfile();
+      renderAdmin();
+    }
+
+    function adminReject(taskId) {
+      if (!currentUser.is_admin) {
+        showToast("Доступ только для администратора", "error");
+        return;
+      }
+      const state = loadState();
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (task.status !== "verification") return;
+
+      const creator = state.users.find((u) => u.id === task.creator_id);
+
+      // Возвращаем деньги заказчику
+      if (creator) {
+        creator.balance =
+          Number(creator.balance || 0) + Number(task.reward || 0);
+      }
+
+      task.status = "rejected";
+      const logEntry = `[${new Date().toLocaleString(
+        "ru-RU"
+      )}] ❌ Админ отклонил задачу #${task.id}, средства возвращены заказчику @${
+        creator?.username || "?"
+      }`;
+      state.logs = state.logs || [];
+      state.logs.unshift(logEntry);
+
+      saveState(state);
+      showToast("Сделка отклонена, средства возвращены", "warning");
+      updateHeaderAndProfile();
+      renderFeed();
+      renderProfile();
+      renderAdmin();
+    }
+
+    // Создание задания
+    createTaskForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const state = loadState();
+      const user = ensureUserInState();
+
+      const title = createTaskForm.taskTitle.value.trim();
+      const description = createTaskForm.taskDescription.value.trim();
+      const link = createTaskForm.taskLink.value.trim();
+      const rewardNum = Number(createTaskForm.taskReward.value);
+
+      if (!title || !description || !rewardNum || rewardNum <= 0) {
+        showToast("Заполните все поля корректно", "error");
+        return;
+      }
+
+      if (user.balance < rewardNum) {
+        showToast(
+          "Недостаточно средств на балансе (для MVP можно пополнить вручную в коде)",
+          "error"
+        );
+        return;
+      }
+
+      const task = {
+        id: generateTaskId(state),
+        creator_id: user.id,
+        performer_id: null,
+        title,
+        description,
+        link: link || null,
+        reward: rewardNum,
+        status: "new",
+        proof: null,
+        created_at: Date.now(),
+      };
+
+      state.tasks.push(task);
+      // Резервируем бюджет — списываем с баланса
+      user.balance = Number(user.balance || 0) - rewardNum;
+
+      saveState(state);
+      createTaskForm.reset();
+      showToast("Задание опубликовано и бюджет заморожен", "success");
+      updateHeaderAndProfile();
+      renderFeed();
+      renderProfile();
+    });
+
+    // === Навигация ===
+    function setActiveTab(tabName) {
+      [sectionFeed, sectionCreate, sectionProfile, sectionAdmin].forEach(
+        (sec) => {
+          sec.classList.remove("active");
+        }
+      );
+
+      switch (tabName) {
+        case "feed":
+          sectionFeed.classList.add("active");
+          break;
+        case "create":
+          sectionCreate.classList.add("active");
+          break;
+        case "profile":
+          sectionProfile.classList.add("active");
+          break;
+        case "admin":
+          sectionAdmin.classList.add("active");
+          break;
+      }
+
+      tabsTop.forEach((t) => {
+        t.classList.toggle("active", t.dataset.tab === tabName);
+      });
+      tabsBottom.forEach((t) => {
+        t.classList.toggle("active", t.dataset.tab === tabName);
+      });
+
+      if (tabName === "feed") renderFeed();
+      if (tabName === "profile") renderProfile();
+      if (tabName === "admin") renderAdmin();
+    }
+
+    tabsTop.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.tab;
+        if (name === "admin" && !currentUser.is_admin) {
+          showToast("Админ-панель доступна только администратору", "error");
+          return;
+        }
+        setActiveTab(name);
+      });
+    });
+
+    tabsBottom.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.tab;
+        if (name === "admin" && !currentUser.is_admin) {
+          showToast("Админ-панель доступна только администратору", "error");
+          return;
+        }
+        setActiveTab(name);
+      });
+    });
+
+    feedFilterEl.addEventListener("change", () => {
+      renderFeed();
+    });
+
+    // === Инициализация ===
+    (function init() {
+      ensureUserInState();
+      updateHeaderAndProfile();
+      renderFeed();
+      renderProfile();
+      renderAdmin();
+    })();
+  </script>
+</body>
+</html>
